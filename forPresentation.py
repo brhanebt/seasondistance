@@ -10,11 +10,6 @@
         git sha              : $Format:%H$
         copyright            : (C) 2018 by University of Muenster
         email                : b_teka02@uni-muenster.de
-        Members              : Vanesa Perez Sancho
-                             : Harini Ravi
-                             : Fana Gebremeskel Gebreegziabiher
-                             : Denny Assarias Palinggi
-                             : Brhane Bahrishum Teka
  ***************************************************************************/
 
 /***************************************************************************
@@ -50,6 +45,7 @@ import os.path
 class seasonDistance:
     """QGIS Plugin Implementation."""
     uniqueOwls = [0,0,0,0];
+    speedSum = [0,0,0,0]
     coordinatesX = [0,0,0,0];
     coordinatesY = [0,0,0,0];
     distanceCovered=[0,0,0,0];
@@ -58,11 +54,15 @@ class seasonDistance:
     tags = []
     Seasons = ['Winter','Spring','Summer','Autumn']
     seasonsText=[]
+    sumV = [0,0,0,0]
     sd=[0,0,0,0]
+    meanSpeed=[0,0,0,0]
     normalizedDistance=[0,0,0,0]
     startTimeStamp=['','','','']
     endTimeStamp=['','','','']
+    countTrigger=[0,0,0,0]
     distanceByMonth=[0,0,0,0,0,0,0,0,0,0,0,0]
+    twoD=[]
     months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
     distance2011=[0,0,0,0]
     distance2012=[0,0,0,0]
@@ -82,8 +82,6 @@ class seasonDistance:
     meanMonthCount = [0,0,0,0,0,0,0,0,0,0,0,0]
     sdMonthly = [0,0,0,0,0,0,0,0,0,0,0,0]
     normalizedMonthlyDistance=[0,0,0,0,0,0,0,0,0,0,0,0]
-    matrixForBoxPlot=[]
-    matrixForMonthlyBoxPlot=[]
     #We don't know for what
     uniqueOwls2011=[0,0,0,0]
     uniqueOwls2012=[0,0,0,0]
@@ -264,8 +262,8 @@ class seasonDistance:
 
     
     def run(self):
-        # Retrieve selected layer index
         self.dlg.comboBox.clear()
+        #print("here")
         layers = self.iface.mapCanvas().layers()
         layers_list = []
         for layer in layers:
@@ -277,7 +275,9 @@ class seasonDistance:
         result = self.dlg.exec_()
         # See if OK was pressed
         tagsOneEach = ['1751', '1750', '1292', '1753', '1754', '3896', '3895', '3894', '3897', '3898', '4045', '5159', '4044', '3899', '5158', '4046', '4043', '4846', '3893', '3892', '4848']
-        # Once selected
+        #tagsOneEach = ['1751', '1754', '4043', '4848']
+        seasonsUnique = ['spring', 'spring', 'spring', 'spring', 'summer', 'summer', 'summer', 'summer', 'spring', 'spring', 'spring', 'spring', 'spring', 'spring', 'spring', 'spring', 'winter', 'summer', 'summer', 'summer', 'autumn']
+        #seasonsUnique = ['spring','summer', 'winter', 'autumn']
         if result:
             layer = layers[self.dlg.comboBox.currentIndex()]
             features = layer.getFeatures();
@@ -285,149 +285,208 @@ class seasonDistance:
                 expression = QgsExpression("tag_ident = '"+tagsOneEach[i]+"'");
                 request = QgsFeatureRequest(expression)
                 selection = layer.getFeatures(request)
-                # Perform operation for each tag_ident -- meaning for each owl
-                self.performComputation(selection)
-            # Divide the distance calculated by the number of owls contributed to make the comparisons 1 vs 1 in each season
+                self.distanceCalculation(selection)
+                
+                
+                #print('done')
+            #out_attributes = layer.GetLayerDefn()
+            #fo
+            #print(out_attributes.GetFieldCount());
+
             self.normalizedDistance = [x/y for x, y in zip(self.distanceCovered, self.uniqueOwls)]
-            # Divide the distance calculated by the number of owls contributed to make the comparisons 1 vs 1 in each month
+            
+            
+            print(self.distanceByMonth);
             self.normalizedMonthlyDistance = [x/y for x, y in zip(self.distanceByMonth, self.uniqueOwlsMonth)]
-            # Calculate seasonal mean distance for standard deviation of seasons in different years
             self.calculateMean();
-            # calculate standard deviation among seasons in different years
             self.calculateSD();
-            # calculate monthly mean in different years for standard deviation among those in different years
             self.calculateMeanMonthly();
             self.calculateSDMonthly();
-            # Make plots
             self.distancePlot(self.Seasons,self.normalizedDistance,self.sd, self.months, self.normalizedMonthlyDistance,self.sdMonthly)
+            #self.distanceSeasonPlot(self.Seasons,self.normalizedDistance);
+            #self.distanceMonthsPlot(self.distanceByMonth,self.months);
+            
+            #print(self.distanceMonth2011)
+            #print(self.distanceMonth2012)
+            #print(self.distanceMonth2013)
+            #print(self.distanceMonth2014)
+            #print(self.distanceMonth2015)
+            #print(self.distanceMonth2016)
+            #print(self.distanceMonth2017)
             
     def distancePlot(self,seasons,distanceSeasons,seasonalSd, months,distancMonthly,sdMonthly):
-        # Divide by 1000 to convert from meters to kms
+        print('Seasonly')
+        print(seasons)
+        print(distanceSeasons)
+        print(seasonalSd)
+        print('Number of recordings')
+        print(self.owlsType)
+        print('Monthly')
+        print(months)
+        print(distancMonthly)
+        print('Monthly SD')
+        print(sdMonthly)
+        
+        
+            distanceMonth2011=[0,0,0,0,0,0,0,0,0,0,0,0]
+    distanceMonth2012=[0,0,0,0,0,0,0,0,0,0,0,0]
+    distanceMonth2013=[0,0,0,0,0,0,0,0,0,0,0,0]
+    distanceMonth2014=[0,0,0,0,0,0,0,0,0,0,0,0]
+    distanceMonth2015=[0,0,0,0,0,0,0,0,0,0,0,0]
+    distanceMonth2016=[0,0,0,0,0,0,0,0,0,0,0,0]
+    distanceMonth2017=[0,0,0,0,0,0,0,0,0,0,0,0]
+        for [[x in range(distanceMonth2011)] for x in xrange(6)]
+        
+        #y_pos = np.arange(len(seasons))
+        #width = 0.35       # the width of the bars: can also be len(x) sequence
         distanceSeasons= [x / 1000 for x in distanceSeasons]
         seasonalSd=[x / 1000 for x in seasonalSd]
         distancMonthly= [x / 1000 for x in distancMonthly]
         sdMonthly=[x / 1000 for x in sdMonthly]
-        # Make seasonal distance and standard deviation scatter plots with shared x 
+        #p1 = plt.bar(y_pos, distanceSeasons, width, color='#d62728')
+        #p2 = plt.bar(y_pos, seasonalSd, width,bottom=distanceSeasons)
+
+        #plt.ylabel('Distance')
+        #plt.title('Owls Seasonal average distance & Standard Deviation')
+        #plt.xticks(y_pos, seasons)
+        #plt.yticks(distanceSeasons)
+        #plt.legend((p1[0], p2[0]), ('Average Distance', 'Standard Deviation'))
+        
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
         xn = range(len(seasons))
-        a1 = ax1.scatter(xn, distanceSeasons, color='g', s=35, label='Average Distance')
-        a2 = ax2.scatter(xn, seasonalSd, color='b',s=35, label='Standard Deviation')
+        ax1.plot(xn, distanceSeasons, 'g-')
+        ax2.plot(xn, seasonalSd, 'b-')
         ax1.set_xlabel('Seasons')
-        ax1.set_ylabel('Distance in seasons(in KM)', color='g')
-        ax2.set_ylabel('Standard Deviation(in KM)', color='b')
+        ax1.set_ylabel('Distance in seasons', color='g')
+        ax2.set_ylabel('Standard Deviation', color='b')
         plt.xticks(xn, seasons)
-        p = [a1, a2]
-        ax1.legend(p, [p_.get_label() for p_ in p],loc= 'upper left', fontsize= 'small')
-        plt.title('Seasonal average distance covered by Owl & Standard Deviation')
+        ax1.legend()
+        ax2.legend()
+        plt.title('Average distance covered by Owl per season against Standard Deviation')
         plt.show()
-        # Make monthly distance and standard deviation scatter plots with shared x
+        
         fig, ax3 = plt.subplots()
         ax4 = ax3.twinx()
         xn = range(len(months))
-        b1 = ax3.scatter(xn, distancMonthly,color='g',s=35, label='Average Distance')
-        b2 = ax4.scatter(xn, sdMonthly,color='b',s=35, label='Standard Deviation')
+        ax3.plot(xn, distancMonthly, 'g-')
+        ax4.plot(xn, sdMonthly, 'b-')
         ax3.set_xlabel('Months')
-        ax3.set_ylabel('Distance in months(in KM)', color='g')
-        ax4.set_ylabel('Standard Deviation in months(in KM)', color='b')
+        ax3.set_ylabel('Distance in months', color='g')
+        ax4.set_ylabel('Standard Deviation in months', color='b')
         plt.xticks(xn, months)
-        pl = [b1, b2]
-        ax3.legend(pl, [p_.get_label() for p_ in pl],loc= 'upper left', fontsize= 'small')
-        plt.title('Monthly average distance covered by owls & Standard Deviation')
+        ax3.legend()
+        ax4.legend()
+        plt.title('Average distance covered by Owl per month against Standard Deviation')
         plt.show()
-        # Make seasonal distance box plot
-        for i in range(len(self.matrixForBoxPlot)):
-           for j in range(len(self.matrixForBoxPlot[i])):
-                self.matrixForBoxPlot[i][j] = self.matrixForBoxPlot[i][j]/1000
-        fig, ax = plt.subplots()
-        ax.boxplot(self.matrixForBoxPlot)
-        plt.xticks([1, 2, 3,4], ['Winter', 'Spring', 'Summer','Autumn'])
-        plt.title('Seasonal distance traveled boxplot(in KM)')
-        plt.show()
+        #p3 = plt.bar(y_pos, distancMonthly, width, color='#D5D8DC')
+        #p4 = plt.bar(y_pos, sdMonthly, width,bottom=distancMonthly)
+        #y_pos = np.arange(len(months))
+        #plt.xticks(y_pos, months)
+        #plt.legend((p3[0], p4[0]), ('Average Distance', 'Standard Deviation'))
+        #plt.ylabel('Distance')
+        #plt.title('Owls monthly average distance of owl flight in every month')
+        #plt.show()
         
-        # Make monthly distance box plot
-        for i in range(len(self.matrixForMonthlyBoxPlot)):
-           for j in range(len(self.matrixForMonthlyBoxPlot[i])):
-                self.matrixForMonthlyBoxPlot[i][j] = self.matrixForMonthlyBoxPlot[i][j]/1000
-        fig, ax = plt.subplots()
-        ax.boxplot(self.matrixForMonthlyBoxPlot)
-        plt.xticks([1, 2, 3,4,5,6,7,8,9,10,11,12], months)
-        plt.title('Monthly distance traveled boxplot(in KM)')
-        plt.show()
-    # Calculate monthly mean
     def calculateMeanMonthly(self):
-        for i in range(len(self.distanceMonth2011)):
-            self.matrixForMonthlyBoxPlot.append([])
         counter = -1
         for one,two,three,four,five,six,seven in zip(self.distanceMonth2011,self.distanceMonth2012,self.distanceMonth2013,self.distanceMonth2014,self.distanceMonth2015,self.distanceMonth2016,self.distanceMonth2017):
             counter = counter+1
             if one!=0:
                self.meanMonthCount[counter] = self.meanMonthCount[counter] + 1
-               self.matrixForMonthlyBoxPlot[counter].append(one)
             if two!=0:
                self.meanMonthCount[counter] = self.meanMonthCount[counter] + 1
-               self.matrixForMonthlyBoxPlot[counter].append(two)
             if three!=0:
                self.meanMonthCount[counter] = self.meanMonthCount[counter] + 1
-               self.matrixForMonthlyBoxPlot[counter].append(three)
             if four!=0:
                self.meanMonthCount[counter] = self.meanMonthCount[counter] + 1
-               self.matrixForMonthlyBoxPlot[counter].append(four)
             if five!=0:
                self.meanMonthCount[counter] = self.meanMonthCount[counter] + 1
-               self.matrixForMonthlyBoxPlot[counter].append(five)
             if six!=0:
                self.meanMonthCount[counter] = self.meanMonthCount[counter] + 1
-               self.matrixForMonthlyBoxPlot[counter].append(six)
             if seven!=0:
                self.meanMonthCount[counter] = self.meanMonthCount[counter] + 1
-               self.matrixForMonthlyBoxPlot[counter].append(seven)
-
-    # Calculate seasonal mean for standard deviation
+        print(self.meanMonthCount)
     def calculateMean(self):
-        for i in range(len(self.distance2017)):
-            self.matrixForBoxPlot.append([])
         counter = -1
         for one,two,three,four,five,six,seven in zip(self.distance2011,self.distance2012,self.distance2013,self.distance2014,self.distance2015,self.distance2016,self.distance2017):
             counter = counter+1
             if one!=0:
-               self.matrixForBoxPlot[counter].append(one)
                self.meanCount[counter] = self.meanCount[counter] + 1
             if two!=0:
-               self.matrixForBoxPlot[counter].append(two)
                self.meanCount[counter] = self.meanCount[counter] + 1
             if three!=0:
-               self.matrixForBoxPlot[counter].append(three)
                self.meanCount[counter] = self.meanCount[counter] + 1
             if four!=0:
-               self.matrixForBoxPlot[counter].append(four)
                self.meanCount[counter] = self.meanCount[counter] + 1
             if five!=0:
-                self.matrixForBoxPlot[counter].append(five)
-                self.meanCount[counter] = self.meanCount[counter] + 1
+               self.meanCount[counter] = self.meanCount[counter] + 1
             if six!=0:
-                self.matrixForBoxPlot[counter].append(six)
-                self.meanCount[counter] = self.meanCount[counter] + 1
+               self.meanCount[counter] = self.meanCount[counter] + 1
             if seven!=0:
-                self.matrixForBoxPlot[counter].append(seven)
-                self.meanCount[counter] = self.meanCount[counter] + 1
-    # Calculate standard deviation among seasons in different years
+               self.meanCount[counter] = self.meanCount[counter] + 1
     def calculateSD(self):
         meanDistance = [x/y for x, y in zip(self.distanceCovered, self.meanCount)]
         for i in range(4):
             self.sd[i] = math.sqrt(((self.distance2011[i] - meanDistance[i])**2 + (self.distance2012[i] - meanDistance[i])**2 + (self.distance2013[i] - meanDistance[i])**2 + (self.distance2014[i] - meanDistance[i])**2 + (self.distance2015[i] - meanDistance[i])**2 + (self.distance2016[i] - meanDistance[i])**2 + (self.distance2017[i] - meanDistance[i])**2)/self.meanCount[i])
-    # Calculate standard monthly standard deviation among months of different year
+        print('Standard Deviation of distance with in season')
+        print(self.sd)
     def calculateSDMonthly(self):
         meanMonthDistance = [x/y for x, y in zip(self.distanceByMonth, self.meanMonthCount)]
         for i in range(12):
             self.sdMonthly[i] = math.sqrt(((self.distanceMonth2011[i] - meanMonthDistance[i])**2 + (self.distanceMonth2012[i] - meanMonthDistance[i])**2 + (self.distanceMonth2013[i] - meanMonthDistance[i])**2 + (self.distanceMonth2014[i] - meanMonthDistance[i])**2 + (self.distanceMonth2015[i] - meanMonthDistance[i])**2 + (self.distanceMonth2016[i] - meanMonthDistance[i])**2 + (self.distanceMonth2017[i] - meanMonthDistance[i])**2)/self.meanMonthCount[i])
-    # Calculate the distance between two points using the projected UTM east and UTM north fields in the dataset
+        print('Standard Deviation of distance with in month')
+        print(self.sdMonthly)
+    def distanceMonthsPlot(self,distance,months):
+        #print('Monthly')
+        #print(months)
+        #print(distance)
+        #print('Yearly')
+        #print(self.distance2011)
+        #print(self.distance2012)
+        #print(self.distance2013)
+        #print(self.distance2014)
+        #print(self.distance2015)
+        #print(self.distance2016)
+        #print(self.distance2017)
+        #print('unique owls')
+        #print(self.uniqueOwls2011)
+        #print(self.uniqueOwls2012)
+        #print(self.uniqueOwls2013)
+        #print(self.uniqueOwls2014)
+        #print(self.uniqueOwls2015)
+        #print(self.uniqueOwls2016)
+        #print(self.uniqueOwls2017)
+
+        #averageDistanceYears=
+        #print(self.owlsType)
+        y_pos = np.arange(len(months))
+        plt.bar(y_pos, distance, align='center', alpha=0.5)
+        plt.xticks(y_pos, months)
+        plt.ylabel('Distance')
+        plt.title('Average distance of owl flight in every month')
+        plt.show()
+
     def calculateDistance(self,lat1,lon1,lat2,lon2):
         dlat=(lat2-lat1)**2
         dlon=(lon2-lon1)**2
         distance=math.sqrt(dlat + dlon);
         return distance; 
-    # Calculate distance traveled in months across different years for use in standard deviation 
+    def calculateDistanceWGS84(self,lat1,lon1,lat2,lon2):
+        earth_radius = 6371;
+        pi = 0.017453292519943295; 
+        dlat=(lat2-lat1)*pi
+        dlon=(lon2-lon1)*pi
+        distance=(math.sin(dlat/2)*math.sin(dlat/2)) + (math.cos(lat1*pi)*math.cos(lat2*pi)*math.sin(dlon/2)*math.sin(dlon/2));
+        distance = np.clip(distance, -1, 1)
+        #print(distance)
+        distance = 2 * math.atan2(math.sqrt(distance), math.sqrt(1 - distance));
+        #distance = 2 * asin(sqrt(distance));
+        #distance=math.acos(distance);
+        distance=distance*earth_radius;
+        #print(distance)
+        return distance; 
+
     def perYearMonth(self,date_year,month_id,distanceCalculated):
         if date_year == 2011:
             self.distanceMonth2011[month_id] = distanceCalculated + self.distanceMonth2011[month_id];
@@ -443,7 +502,7 @@ class seasonDistance:
             self.distanceMonth2016[month_id] = distanceCalculated + self.distanceMonth2016[month_id];
         elif date_year == 2017:
             self.distanceMonth2017[month_id] = distanceCalculated + self.distanceMonth2017[month_id];
-    # Calculate distance traveled in seasons across different years for use in standard deviation  
+
     def perYear(self,date_year,seasonIn,distanceCalculated):
         if date_year == 2011:
             self.distance2011[seasonIn] = distanceCalculated + self.distance2011[seasonIn];
@@ -459,7 +518,7 @@ class seasonDistance:
             self.distance2016[seasonIn] = distanceCalculated + self.distance2016[seasonIn];
         elif date_year == 2017:
             self.distance2017[seasonIn] = distanceCalculated + self.distance2017[seasonIn];
-   # Count unique tags(owls) in seasons across different years for use normalization and average
+   
     def perYearUnique(self,date_year,seasonIn,tag_ident):
         if date_year == 2011:
             if tag_ident not in self.tags2011:
@@ -489,7 +548,6 @@ class seasonDistance:
             if tag_ident not in self.tags2017:
                     self.uniqueOwls2017[seasonIn] = self.uniqueOwls2017[seasonIn]+ 1
                     self.tags2017.append(tag_ident)
-    # Count unique tags in months across different years for use normalization and average
     def checkUniqueMonthly(self,tag_ident,monthId):
         if monthId == 0:
             if tag_ident not in self.tagsJan:
@@ -538,30 +596,34 @@ class seasonDistance:
         elif monthId ==11:
             if tag_ident not in self.tagsDec:
                     self.uniqueOwlsMonth[monthId] = self.uniqueOwlsMonth[monthId]+ 1
-                    self.tagsDec.append(tag_ident)
-    # Main function to check the season based on timestamp and call distance functions based on seasons
+                    self.tagsDec.append(tag_ident)            
     def performComputation(self,selected_features):
         counter = 0;
         pnt_prev_x=[0,0,0,0];
         pnt_prev_y=[0,0,0,0];
         pnt_intial_x=0;
         pnt_intial_y=0;
-        # Get the first location for distance calculation
         for feat in selected_features:
             pnt_intial_x=feat['utm_east'];
             pnt_intial_y=feat['utm_north'];
             break;
-        # Start from the second field to calculate distance and add to the corresponding variable storage
         for feature in selected_features:
-            counter = counter + 1;
+
             tag_timestamp = feature['timestamp']
             tag_ident = feature['tag_ident']
+            speed = feature['speed']
             pnt_now= feature.geometry();
             dt = datetime.strptime(tag_timestamp, '%Y-%m-%d %H:%M:%S')
             pnt_now_x=feature['utm_east'];
             pnt_now_y=feature['utm_north'];
+            #print(str(pnt_now_x) + ","+ str(pnt_now_y))
             date_year = dt.year;
             date_day = dt.month+dt.day/30
+            #print(tag_timestamp)
+            #print(pnt_now_x)
+            #print(self.coordinatesX)
+            #print(pnt_now_y)
+            #print(self.coordinatesY)
             
             if date_day >= 6.7 and date_day <=9.7: #Summer
                 self.owlsType[2] = self.owlsType[2]+1
@@ -571,27 +633,21 @@ class seasonDistance:
                     pnt_prev_x[2]=pnt_intial_x;
                     pnt_prev_y[2]=pnt_intial_y;
                 else:
-                    #Calculate distance
                     distanceCalculated = self.calculateDistance(pnt_prev_x[2],pnt_prev_y[2],self.coordinatesX[2],self.coordinatesY[2]);
-                    #add the distance to a season based on year
                     self.perYear(date_year,2,distanceCalculated)
-                    #Count the number of unique owls contributing to the calculation
                     self.perYearUnique(date_year,2,tag_ident)
-                    #add the distance by month 
                     self.distanceByMonth[dt.month-1] = self.distanceByMonth[dt.month-1] + distanceCalculated;
-                    #Count the number of unique owls contributing to the calculation in a month
-                    self.checkUniqueMonthly(tag_ident,dt.month-1)
-                    #add the distance to a month based on year
+                    self.checkUniqueMonthly(tag_ident,dt.month-1);
                     self.perYearMonth(date_year,dt.month-1,distanceCalculated)
-                    #Add the total distance calculated in season
+                    #print(((self.coordinatesX[2]-pnt_prev_x[2])*(self.coordinatesX[2]-pnt_prev_x[2]))+((self.coordinatesY[2]-pnt_prev_y[2])*(self.coordinatesY[2]-pnt_prev_y[2])))
                     self.distanceCovered[2]=self.distanceCovered[2]+distanceCalculated
-                    #Make this location the previous for the next iteration
                     pnt_prev_x[2]=self.coordinatesX[2];
                     pnt_prev_y[2]=self.coordinatesY[2];
                 if tag_ident not in self.tags:
                     self.uniqueOwls[2] = self.uniqueOwls[2]+1;
                     self.tags.append(tag_ident)
                     self.seasonsText.append('summer')
+                self.speedSum[2] = self.speedSum[2] + speed
             elif date_day >12.6 or (date_day>=1 and date_day<3.6): #Winter
                 if self.startTimeStamp[0] == '':
                     self.startTimeStamp[0]=tag_timestamp;
@@ -610,6 +666,7 @@ class seasonDistance:
                     self.distanceByMonth[dt.month-1] = self.distanceByMonth[dt.month-1] + distanceCalculated;
                     self.checkUniqueMonthly(tag_ident,dt.month-1);
                     self.perYearMonth(date_year,dt.month-1,distanceCalculated)
+                    #print(((self.coordinatesX[0]-pnt_prev_x[0])*(self.coordinatesX[0]-pnt_prev_x[0]))+((self.coordinatesY[0]-pnt_prev_y[0])*(self.coordinatesY[0]-pnt_prev_y[0])))
                     self.distanceCovered[0]=self.distanceCovered[0]+distanceCalculated
                     pnt_prev_x[0]=self.coordinatesX[0];
                     pnt_prev_y[0]=self.coordinatesY[0];
@@ -617,6 +674,7 @@ class seasonDistance:
                     self.uniqueOwls[0] = self.uniqueOwls[0]+ 1
                     self.tags.append(tag_ident)
                     self.seasonsText.append('winter')
+                self.speedSum[0] = self.speedSum[0] + speed
             elif (date_day >=3.6 and date_day <6.7): #Spring
                 if self.startTimeStamp[1] == '':
                     self.startTimeStamp[1]=tag_timestamp;
@@ -642,6 +700,7 @@ class seasonDistance:
                     self.uniqueOwls[1] = self.uniqueOwls[1]+1;
                     self.tags.append(tag_ident)
                     self.seasonsText.append('spring')
+                self.speedSum[1] = self.speedSum[1] + speed
             else: #autumn
                 if self.startTimeStamp[3] == '':
                     self.startTimeStamp[3]=tag_timestamp;
@@ -667,3 +726,6 @@ class seasonDistance:
                     self.uniqueOwls[3] = self.uniqueOwls[3]+1
                     self.tags.append(tag_ident)
                     self.seasonsText.append('autumn')
+                self.speedSum[3] = self.speedSum[3] + speed
+            #print(self.distanceCovered)
+        #print(str(pnt_now_x)+" "+str(pnt_now_y))
