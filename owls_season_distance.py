@@ -55,7 +55,10 @@ class seasonDistance:
     distanceCovered=[0,0,0,0];
     previousDistance=[0,0,0,0];
     owlsType = [0,0,0,0]
-    tags = []
+    tags00 = []
+    tags01 = []
+    tags02 = []
+    tags03 = []
     Seasons = ['Winter','Spring','Summer','Autumn']
     seasonsText=[]
     sd=[0,0,0,0]
@@ -301,6 +304,7 @@ class seasonDistance:
             # Make plots
             self.distancePlot(self.Seasons,self.normalizedDistance,self.sd, self.months, self.normalizedMonthlyDistance,self.sdMonthly)
             
+            
     def distancePlot(self,seasons,distanceSeasons,seasonalSd, months,distancMonthly,sdMonthly):
         # Divide by 1000 to convert from meters to kms
         distanceSeasons= [x / 1000 for x in distanceSeasons]
@@ -311,8 +315,8 @@ class seasonDistance:
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
         xn = range(len(seasons))
-        a1 = ax1.scatter(xn, distanceSeasons, color='g', s=35, label='Average Distance')
-        a2 = ax2.scatter(xn, seasonalSd, color='b',s=35, label='Standard Deviation')
+        a1 = ax1.scatter(xn, distanceSeasons, color='g', s=45, label='Average Distance')
+        a2 = ax2.scatter(xn, seasonalSd, color='b',s=25, label='Standard Deviation')
         ax1.set_xlabel('Seasons')
         ax1.set_ylabel('Distance in seasons(in KM)', color='g')
         ax2.set_ylabel('Standard Deviation(in KM)', color='b')
@@ -335,7 +339,7 @@ class seasonDistance:
         ax3.legend(pl, [p_.get_label() for p_ in pl],loc= 'upper left', fontsize= 'small')
         plt.title('Monthly average distance covered by owls & Standard Deviation')
         plt.show()
-        # Make seasonal distance box plot
+        # Make seasonal distance for boxplot in kms
         for i in range(len(self.matrixForBoxPlot)):
            for j in range(len(self.matrixForBoxPlot[i])):
                 self.matrixForBoxPlot[i][j] = self.matrixForBoxPlot[i][j]/1000
@@ -588,9 +592,9 @@ class seasonDistance:
                     #Make this location the previous for the next iteration
                     pnt_prev_x[2]=self.coordinatesX[2];
                     pnt_prev_y[2]=self.coordinatesY[2];
-                if tag_ident not in self.tags:
+                if tag_ident not in self.tags02:
                     self.uniqueOwls[2] = self.uniqueOwls[2]+1;
-                    self.tags.append(tag_ident)
+                    self.tags02.append(tag_ident)
                     self.seasonsText.append('summer')
             elif date_day >12.6 or (date_day>=1 and date_day<3.6): #Winter
                 if self.startTimeStamp[0] == '':
@@ -613,9 +617,9 @@ class seasonDistance:
                     self.distanceCovered[0]=self.distanceCovered[0]+distanceCalculated
                     pnt_prev_x[0]=self.coordinatesX[0];
                     pnt_prev_y[0]=self.coordinatesY[0];
-                if tag_ident not in self.tags:
+                if tag_ident not in self.tags00:
                     self.uniqueOwls[0] = self.uniqueOwls[0]+ 1
-                    self.tags.append(tag_ident)
+                    self.tags00.append(tag_ident)
                     self.seasonsText.append('winter')
             elif (date_day >=3.6 and date_day <6.7): #Spring
                 if self.startTimeStamp[1] == '':
@@ -638,9 +642,9 @@ class seasonDistance:
                     self.distanceCovered[1]=self.distanceCovered[1]+distanceCalculated
                     pnt_prev_x[1]=self.coordinatesX[1];
                     pnt_prev_y[1]=self.coordinatesY[1];
-                if tag_ident not in self.tags:
+                if tag_ident not in self.tags01:
                     self.uniqueOwls[1] = self.uniqueOwls[1]+1;
-                    self.tags.append(tag_ident)
+                    self.tags01.append(tag_ident)
                     self.seasonsText.append('spring')
             else: #autumn
                 if self.startTimeStamp[3] == '':
@@ -663,7 +667,7 @@ class seasonDistance:
                     self.distanceCovered[3]=self.distanceCovered[3]+self.calculateDistance(pnt_prev_x[3],pnt_prev_y[3],self.coordinatesX[3],self.coordinatesY[3])
                     pnt_prev_x[3]=self.coordinatesX[3];
                     pnt_prev_y[3]=self.coordinatesY[3];
-                if tag_ident not in self.tags:
+                if tag_ident not in self.tags03:
                     self.uniqueOwls[3] = self.uniqueOwls[3]+1
-                    self.tags.append(tag_ident)
+                    self.tags03.append(tag_ident)
                     self.seasonsText.append('autumn')
